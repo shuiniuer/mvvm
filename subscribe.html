@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<title>发布订阅</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+	</head>
+	<body>发布订阅</body>
+</html>
+<script>
+	
+	/*-------------------------- 常规的实现方式 ----------------------------*/
+	// 订阅中心
+	let subscibeCenter = {
+		enventCenter:{},
+		subscibe(obj){
+			// 参数说明
+			// obj = {
+			// 	type: event_type,
+			// 	cb: event_callback,
+			//  subscriber: subscriber
+			// }
+			if(!this.enventCenter[obj.type]){
+				this.enventCenter[obj.type] = [];
+			}
+			this.enventCenter[obj.type].push({
+				cb: obj.cb,
+				subscriber: obj.subscriber
+			});
+		},
+		trigger(type){
+			let current_type_cb_arr = this.enventCenter[type];
+			if(current_type_cb_arr){
+				current_type_cb_arr.forEach(item => {
+					item.cb.call(item.subscriber);
+				});
+				// 触发执行完后清空
+				// this.enventCenter[type] = [];
+			}
+		}
+	};
+	
+	// dog 订阅 thiefIn
+	let dog = {
+		name: 'dog',
+		sex: 'male'
+	};
+	subscibeCenter.subscibe({
+		subscriber: dog,
+		type: 'thiefIn',
+		cb: function(){
+			console.log(this.name+'叫了！');
+			subscibeCenter.trigger('dogBark');
+		}
+	});
+
+	// master1 订阅 dogBark
+	let master1 = {
+		name: 'master1',
+		year: 16
+	};
+	subscibeCenter.subscibe({
+		subscriber: master1,
+		type: 'dogBark',
+		cb: function(){
+			console.log(this.name+'醒了！');
+			subscibeCenter.trigger('masterWake');
+		}
+	});
+	// master2 订阅 dogBark
+	let master2 = {
+		name: 'master2',
+		year: 45
+	};
+	subscibeCenter.subscibe({
+		subscriber: master2,
+		type: 'dogBark',
+		cb: function(){
+			console.log(this.name+'醒了！');
+			subscibeCenter.trigger('masterWake');
+		}
+	});
+	
+	// thief 订阅 masterWake
+	let thief = {
+		name: 'thief',
+		color: 'yellow',
+		inHouse(){
+			console.log(this.name+'进入房间！撞到了柜子，发出了声音!');
+			subscibeCenter.trigger('thiefIn');
+		}
+	};
+	subscibeCenter.subscibe({
+		subscriber: thief,
+		type: 'masterWake',
+		cb: function(){
+			console.log(this.name+'逃跑了！');
+		}
+	});
+	
+	// thief 进入房间触发 thiefIn
+	thief.inHouse();
+	
+	console.log('----------------------------------------');
+	/*--------------------用继承的方式实现 观察者模式---------------------*/
+	
+	// 定义一个 Observer 基类
+	class Observer {
+		observe(type, cb, observer) {
+			if(!observer){
+				observer = this;
+			}
+			if (!this.handlers[type]) {
+				this.handlers[type] = [];
+			}
+			this.handlers[type].push({
+				observer: this,
+				callback: cb
+			});
+		}
+		trigger(type) {
+			let callback_list = this.handlers[type];
+			if (callback_list) {
+				callback_list.forEach(item => {
+					item.callback.call(item.observer);
+				});
+				// 触发执行完后清空
+				// this.handlers[type] = [];
+			}
+		}
+	}
+	Observer.prototype.handlers = [];
+
+	class Dog extends Observer {
+		constructor(name) {
+			super();
+			this.name = name;
+			this.classify = 'dog';
+		}
+		bark() {
+			console.log(this.classify + ' ' + this.name + ' 叫了！');
+			this.trigger('dogBark');
+		}
+	}
+	
+	class Master extends Observer {
+		constructor(name) {
+			super();
+			this.name = name;
+			this.classify = 'master';
+		}
+		wakeUp() {
+			console.log(this.classify + ' ' + this.name + ' 醒来了！去抓贼！');
+			this.trigger('masterWakeUp');
+		}
+	}
+	
+	class Thief extends Observer {
+		constructor(name) {
+			super();
+			this.name = name;
+			this.classify = 'thief';
+		}
+		flee() {
+			console.log(this.classify + ' ' + this.name + ' 逃跑了！');
+		}
+		inHouse() {
+			console.log(this.classify + ' ' + this.name + ' 进入了房间！弄出了响声！');
+			this.trigger('thiefIn');
+		}
+	}
+	
+	let dogObj = new Dog('大黄');
+	dogObj.observe('thiefIn', dogObj.bark);
+	
+	let masterObj = new Master('小明');
+	masterObj.observe('dogBark', masterObj.wakeUp);
+	
+	let masterObj2 = new Master('小红');
+	masterObj2.observe('dogBark', masterObj2.wakeUp);
+	
+	let thiefObj = new Thief('光头强');
+	thiefObj.observe('masterWakeUp', thiefObj.flee);
+	thiefObj.inHouse();
+</script>

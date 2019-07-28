@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<title>数据劫持</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+	</head>
+	<body>数据劫持</body>
+</html>
+<script>
+	console.log("------------------ 使用 Object.defineProperty() 实现 -------------------");
+	// 需要劫持的数据对象
+	let obj = {
+		id: 1,
+		user: {
+			name: 'vue',
+			age: 4,
+			property: {
+				color: 'red'
+			}
+		}
+	};
+
+	function hijack(tagert) {
+		Object.keys(tagert).forEach(key => {
+			let value = tagert[key];
+			Object.defineProperty(tagert, key, {
+				get: function() {
+					console.log(key + ' getter');
+					return value;
+				},
+				set: function(newValue) {
+					console.log(key + ' setter');
+					value = newValue;
+				},
+				enumerable: true,
+				configurable: true
+			});
+			if (value instanceof Object) {
+				hijack(value);
+			}
+		});
+	}
+	hijack(obj);
+	obj.id = 2019;
+	console.log(obj.id);
+	obj.user.name = 'React';
+	console.log(obj.user.name);
+	console.log(obj.user.property);
+	console.log(obj.user.property.color);
+
+	console.log('------------------- 使用 Proxy 实现 --------------------');
+	// 需要劫持的数据对象
+	let obj2 = {
+		id: 1,
+		user: {
+			name: 'vue',
+			age: 4,
+			property: {
+				color: 'red'
+			}
+		}
+	};
+
+	function hiProxy(obj) {
+		Object.keys(obj).forEach(key => {
+			let value = obj[key];
+			if (value instanceof Object) {
+				obj[key] = hiProxy(value);
+			}
+		});
+		let proxyObj = new Proxy(obj, {
+			get(target, prop) {
+				console.log(prop + ' getter');
+				return target[prop];
+			},
+			set(target, prop, value) {
+				console.log(prop + ' setter');
+				target[prop] = value;
+			}
+		});
+		return proxyObj
+	}
+
+	obj2 = hiProxy(obj2);
+	console.log(obj2.id);
+	obj2.id = 2019;
+	console.log(obj2.user.name);
+	console.log(obj2.user.property.color);
+</script>
